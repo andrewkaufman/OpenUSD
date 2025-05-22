@@ -894,6 +894,9 @@ class AppController(QtCore.QObject):
             self._ui.actionDisplay_Render.triggered.connect(
                 self._toggleDisplayRender)
 
+            self._ui.actionDisplay_Default.triggered.connect(
+                self._toggleDisplayDefault)
+
             self._ui.actionDisplay_Camera_Oracles.triggered.connect(
                 self._toggleDisplayCameraOracles)
 
@@ -2643,6 +2646,10 @@ class AppController(QtCore.QObject):
     def _toggleDisplayRender(self):
         self._dataModel.viewSettings.displayRender = (
             self._ui.actionDisplay_Render.isChecked())
+
+    def _toggleDisplayDefault(self):
+        self._dataModel.viewSettings.displayDefault = (
+            self._ui.actionDisplay_Default.isChecked())
 
     def _toggleDisplayCameraOracles(self):
         self._dataModel.viewSettings.displayCameraOracles = (
@@ -5360,6 +5367,8 @@ class AppController(QtCore.QObject):
             self._dataModel.viewSettings.displayProxy)
         self._ui.actionDisplay_Render.setChecked(
             self._dataModel.viewSettings.displayRender)
+        self._ui.actionDisplay_Default.setChecked(
+            self._dataModel.viewSettings.displayDefault)
 
     def _refreshViewMenu(self):
         self._ui.actionEnable_Scene_Materials.setChecked(

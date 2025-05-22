@@ -66,6 +66,7 @@ public:
     bool showGuides;
     bool showProxy;
     bool showRender;
+    bool showDefault;
     bool forceRefresh;
     bool flipFrontFacing;
     UsdImagingGLCullStyle cullStyle;
@@ -115,6 +116,7 @@ UsdImagingGLRenderParams::UsdImagingGLRenderParams() :
     showGuides(false),
     showProxy(true),
     showRender(false),
+    showDefault(true),
     forceRefresh(false),
     flipFrontFacing(false),
     cullStyle(UsdImagingGLCullStyle::CULL_STYLE_NOTHING),
@@ -148,6 +150,7 @@ UsdImagingGLRenderParams::operator==(const UsdImagingGLRenderParams &other)
         && showGuides                  == other.showGuides
         && showProxy                   == other.showProxy
         && showRender                  == other.showRender
+        && showDefault                 == other.showDefault
         && forceRefresh                == other.forceRefresh
         && flipFrontFacing             == other.flipFrontFacing
         && cullStyle                   == other.cullStyle

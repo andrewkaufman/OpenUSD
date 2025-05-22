@@ -165,6 +165,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         self._displayGuide = self.stateProperty("displayGuide", default=False)
         self._displayProxy = self.stateProperty("displayProxy", default=True)
         self._displayRender = self.stateProperty("displayRender", default=False)
+        self._displayDefault = self.stateProperty("displayDefault", default=True)
         self._enableSceneMaterials = self.stateProperty("enableSceneMaterials", default=True)
         self._enableSceneLights = self.stateProperty("enableSceneLights", default=True)
         self._cullBackfaces = self.stateProperty("cullBackfaces", default=False)
@@ -237,6 +238,7 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
         state["displayGuide"] = self._displayGuide
         state["displayProxy"] = self._displayProxy
         state["displayRender"] = self._displayRender
+        state["displayDefault"] = self._displayDefault
         state["enableSceneMaterials"] = self._enableSceneMaterials
         state["enableSceneLights"] = self._enableSceneLights
         state["cullBackfaces"] = self._cullBackfaces
@@ -540,6 +542,15 @@ class ViewSettingsDataModel(StateSource, QtCore.QObject):
     @visibleViewSetting
     def displayRender(self, value):
         self._displayRender = value
+
+    @property
+    def displayDefault(self):
+        return self._displayDefault
+
+    @displayDefault.setter
+    @visibleViewSetting
+    def displayDefault(self, value):
+        self._displayDefault = value
 
     @property
     def displayCameraOracles(self):

@@ -1302,6 +1302,11 @@ class StageView(QGLWidget):
         elif UsdGeom.Tokens.render in includedPurposes:
             includedPurposes.remove(UsdGeom.Tokens.render)
 
+        if self._dataModel.viewSettings.displayDefault:
+            includedPurposes.add(UsdGeom.Tokens.default_)
+        elif UsdGeom.Tokens.default_ in includedPurposes:
+            includedPurposes.remove(UsdGeom.Tokens.default_)
+
         self._dataModel.includedPurposes = includedPurposes
         # force the bbox to refresh
         self._bbox = Gf.BBox3d()
@@ -1446,6 +1451,7 @@ class StageView(QGLWidget):
         self._renderParams.showGuides = self._dataModel.viewSettings.displayGuide
         self._renderParams.showProxy = self._dataModel.viewSettings.displayProxy
         self._renderParams.showRender = self._dataModel.viewSettings.displayRender
+        self._renderParams.showDefault = self._dataModel.viewSettings.displayDefault
         self._renderParams.forceRefresh = self._forceRefresh
         self._renderParams.cullStyle = \
             (UsdImagingGL.CullStyle.CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED
@@ -2192,6 +2198,7 @@ class StageView(QGLWidget):
         self._renderParams.showGuides = self._dataModel.viewSettings.displayGuide
         self._renderParams.showProxy = self._dataModel.viewSettings.displayProxy
         self._renderParams.showRender = self._dataModel.viewSettings.displayRender
+        self._renderParams.showDefault = self._dataModel.viewSettings.displayDefault
         self._renderParams.forceRefresh = self._forceRefresh
         self._renderParams.cullStyle = \
             (UsdImagingGL.CullStyle.CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED

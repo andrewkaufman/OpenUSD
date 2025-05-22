@@ -456,6 +456,7 @@
              <addaction name="actionDisplay_Guide"/>
              <addaction name="actionDisplay_Proxy"/>
              <addaction name="actionDisplay_Render"/>
+             <addaction name="actionDisplay_Default"/>
             </widget>
             <widget class="QMenu" name="menuHUD">
              <property name="title">
@@ -2412,6 +2413,14 @@
    </property>
    <property name="text">
     <string>Render</string>
+   </property>
+  </action>
+  <action name="actionDisplay_Default">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Default</string>
    </property>
   </action>
   <action name="actionEnable_Scene_Materials">

@@ -1896,7 +1896,9 @@ UsdImagingGLEngine::_ComputeRenderTags(UsdImagingGLRenderParams const& params,
     // the application
     renderTags->clear();
     renderTags->reserve(4);
-    renderTags->push_back(HdRenderTagTokens->geometry);
+    if (params.showDefault) {
+        renderTags->push_back(HdRenderTagTokens->geometry);
+    }
     if (params.showGuides) {
         renderTags->push_back(HdRenderTagTokens->guide);
     }
