@@ -387,7 +387,7 @@ _GetColliderErrors(const UsdPrim &usdPrim,
                 if (widthsPrimvar.IsIndexed())
                 {
                     widthsPrimvar.ComputeFlattened(&widths);
-                    widthsSource = "primvars:widths (indexed, flattened)";
+                    widthsSource = "primvars:widths:indices";
                 }
                 else
                 {

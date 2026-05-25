@@ -6,7 +6,7 @@
 # https://openusd.org/license.
 
 import os, unittest
-from pxr import Usd, UsdPhysics, Gf, UsdGeom, Sdf, UsdShade, Plug, Tf
+from pxr import Usd, UsdPhysics, Gf, UsdGeom, Sdf, UsdShade, Plug, Tf, Vt
 
 
 toleranceEpsilon = 0.01
@@ -149,70 +149,50 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CapsuleShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.Capsule1Shape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule_1 shape
-                        self.assertEqual(desc.topRadius, 
-                                         params["topRadius"] * scale[0])
-                        self.assertEqual(desc.bottomRadius, 
-                                         params["bottomRadius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.topRadius, params["topRadius"])
+                        self.assertEqual(desc.bottomRadius,
+                                         params["bottomRadius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.ConeShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # cone shape
-                        self.assertEqual(desc.radius, 
-                                params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Z)
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CylinderShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # cylinder shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.Cylinder1Shape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule_1 shape
-                        self.assertEqual(desc.topRadius, 
-                                         params["topRadius"] * scale[0])
-                        self.assertEqual(desc.bottomRadius, 
-                                         params["bottomRadius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.topRadius, params["topRadius"])
+                        self.assertEqual(desc.bottomRadius,
+                                         params["bottomRadius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
 
                         num_shape_found = num_shape_found + 1
@@ -260,6 +240,95 @@ class TestUsdPhysicsParsing(unittest.TestCase):
 
             self.assertTrue(scene_found)
             self.assertTrue(num_shape_found == 1)
+
+    def test_sphere_points_primvar_widths_parse(self):
+        stage = Usd.Stage.CreateInMemory()
+        scene = UsdPhysics.Scene.Define(stage, '/physicsScene')
+
+        def parse_sphere_points(stage):
+            ret_dict = UsdPhysics.UsdPhysicsLoadStageFromPrimRange(
+                stage, ["/"])
+            for key, value in ret_dict.items():
+                if key == UsdPhysics.ObjectType.SpherePointsShape:
+                    _, descs = value
+                    return descs[0] if descs else None
+            return None
+
+        # only widths attr authored
+        shape = UsdGeom.Points.Define(stage, "/points")
+        UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
+        shape.GetPointsAttr().Set([Gf.Vec3f(1.0), Gf.Vec3f(2.0)])
+        shape.GetWidthsAttr().Set([4.0, 6.0])
+
+        desc = parse_sphere_points(stage)
+        self.assertTrue(desc.isValid)
+        self.assertEqual(len(desc.spherePoints), 2)
+        self.assertAlmostEqual(desc.spherePoints[0].radius, 2.0)
+        self.assertAlmostEqual(desc.spherePoints[1].radius, 3.0)
+        self.assertTrue(Gf.IsClose(Gf.Vec3f(1.0), desc.localScale,
+                                   toleranceEpsilon))
+
+        # only primvars:widths authored
+        stage = Usd.Stage.CreateInMemory()
+        UsdPhysics.Scene.Define(stage, '/physicsScene')
+        shape = UsdGeom.Points.Define(stage, "/points")
+        UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
+        shape.GetPointsAttr().Set([Gf.Vec3f(1.0), Gf.Vec3f(2.0)])
+        primvarsAPI = UsdGeom.PrimvarsAPI(shape.GetPrim())
+        widthsPv = primvarsAPI.CreatePrimvar(
+            "widths", Sdf.ValueTypeNames.FloatArray)
+        widthsPv.Set([4.0, 6.0])
+
+        desc = parse_sphere_points(stage)
+        self.assertTrue(desc.isValid)
+        self.assertEqual(len(desc.spherePoints), 2)
+        self.assertAlmostEqual(desc.spherePoints[0].radius, 2.0)
+        self.assertAlmostEqual(desc.spherePoints[1].radius, 3.0)
+
+        # both authored, primvars:widths wins
+        stage = Usd.Stage.CreateInMemory()
+        UsdPhysics.Scene.Define(stage, '/physicsScene')
+        shape = UsdGeom.Points.Define(stage, "/points")
+        UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
+        shape.GetPointsAttr().Set([Gf.Vec3f(1.0), Gf.Vec3f(2.0)])
+        shape.GetWidthsAttr().Set([10.0, 20.0])
+        primvarsAPI = UsdGeom.PrimvarsAPI(shape.GetPrim())
+        widthsPv = primvarsAPI.CreatePrimvar(
+            "widths", Sdf.ValueTypeNames.FloatArray)
+        widthsPv.Set([4.0, 6.0])
+
+        desc = parse_sphere_points(stage)
+        self.assertTrue(desc.isValid)
+        self.assertAlmostEqual(desc.spherePoints[0].radius, 2.0)
+        self.assertAlmostEqual(desc.spherePoints[1].radius, 3.0)
+
+        # indexed primvars:widths
+        stage = Usd.Stage.CreateInMemory()
+        UsdPhysics.Scene.Define(stage, '/physicsScene')
+        shape = UsdGeom.Points.Define(stage, "/points")
+        UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
+        shape.GetPointsAttr().Set([Gf.Vec3f(1.0), Gf.Vec3f(2.0)])
+        primvarsAPI = UsdGeom.PrimvarsAPI(shape.GetPrim())
+        widthsPv = primvarsAPI.CreatePrimvar(
+            "widths", Sdf.ValueTypeNames.FloatArray)
+        widthsPv.Set([4.0])
+        widthsPv.SetIndices(Vt.IntArray([0, 0]))
+
+        desc = parse_sphere_points(stage)
+        self.assertTrue(desc.isValid)
+        self.assertEqual(len(desc.spherePoints), 2)
+        self.assertAlmostEqual(desc.spherePoints[0].radius, 2.0)
+        self.assertAlmostEqual(desc.spherePoints[1].radius, 2.0)
+
+        # neither authored — invalid
+        stage = Usd.Stage.CreateInMemory()
+        UsdPhysics.Scene.Define(stage, '/physicsScene')
+        shape = UsdGeom.Points.Define(stage, "/points")
+        UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
+        shape.GetPointsAttr().Set([Gf.Vec3f(1.0)])
+
+        desc = parse_sphere_points(stage)
+        self.assertFalse(desc.isValid)
 
     def test_rigidbody_parse(self):
         stage = Usd.Stage.CreateInMemory()

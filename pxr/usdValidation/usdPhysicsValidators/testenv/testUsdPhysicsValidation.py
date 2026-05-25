@@ -152,11 +152,15 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         stage = Usd.Stage.CreateInMemory()
         self.assertTrue(stage)
 
+        body0 = UsdGeom.Xform.Define(stage, "/body0")
+        UsdPhysics.RigidBodyAPI.Apply(body0.GetPrim())
+
         physicsJoint = UsdPhysics.Joint.Define(stage, "/joint")
+        physicsJoint.GetBody0Rel().AddTarget("/body0")
         physicsJoint.GetBody1Rel().AddTarget("/invalidPrim")
 
         errors = validator.Validate(physicsJoint.GetPrim())
-        self.assertTrue(len(errors) >= 1)
+        self.assertTrue(len(errors) == 1)
         self.assertTrue(errors[0].GetName() == "JointInvalidPrimRel")
 
     def test_physics_joint_rel_not_xformable(self):
@@ -177,6 +181,17 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         errors = validator.Validate(physicsJoint.GetPrim())
         errorNames = [e.GetName() for e in errors]
         self.assertIn("JointRelNotXformable", errorNames)
+
+        # Xform is Xformable — should not trigger JointRelNotXformable
+        xform = UsdGeom.Xform.Define(stage, "/xform")
+        UsdPhysics.RigidBodyAPI.Apply(xform.GetPrim())
+
+        physicsJoint2 = UsdPhysics.Joint.Define(stage, "/joint2")
+        physicsJoint2.GetBody0Rel().AddTarget("/xform")
+
+        errors = validator.Validate(physicsJoint2.GetPrim())
+        errorNames = [e.GetName() for e in errors]
+        self.assertNotIn("JointRelNotXformable", errorNames)
 
     def test_physics_joint_requires_enabled_rigid_body(self):
         validationRegistry = UsdValidation.ValidationRegistry()
@@ -227,8 +242,10 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         stage = Usd.Stage.CreateInMemory()
         self.assertTrue(stage)
 
-        UsdGeom.Xform.Define(stage, "/xform0")
-        UsdGeom.Xform.Define(stage, "/xform1")
+        xform0 = UsdGeom.Xform.Define(stage, "/xform0")
+        UsdPhysics.RigidBodyAPI.Apply(xform0.GetPrim())
+        xform1 = UsdGeom.Xform.Define(stage, "/xform1")
+        UsdPhysics.RigidBodyAPI.Apply(xform1.GetPrim())
 
         physicsJoint = UsdPhysics.Joint.Define(stage, "/joint")
 
@@ -256,16 +273,14 @@ class TestUsdPhysicsValidation(unittest.TestCase):
 
         shapes = [ UsdGeom.Sphere, UsdGeom.Capsule, UsdGeom.Cone, UsdGeom.Cylinder ]
 
-        for shapeType in shapes:
-            shape = shapeType.Define(stage, "/shape")
+        for i, shapeType in enumerate(shapes):
+            shape = shapeType.Define(stage, "/shape%d" % i)
             UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
 
             shape.AddScaleOp().Set(Gf.Vec3d(1,2,3))
 
             errors = validator.Validate(shape.GetPrim())
             self.assertTrue(len(errors) == 0)
-
-            stage.RemovePrim(shape.GetPrim().GetPrimPath())
 
 
     def test_plane_collider_static_only(self):
