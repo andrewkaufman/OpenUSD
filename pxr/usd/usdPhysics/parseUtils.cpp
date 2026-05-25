@@ -253,27 +253,10 @@ bool _ParseSphereShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomSphere shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
+            double radiusAttr;
+            shape.GetRadiusAttr().Get(&radiusAttr);
 
-            float radius = 1.0f;
-
-            // Check scale, its part of the collision size
-            {
-                const GfVec3d sc = tr.GetScale();
-                radius = fmaxf(fmaxf(fabsf(float(sc[1])), fabsf(float(sc[0]))),
-                    fabsf(float(sc[2])));
-            }
-
-            // Get shape parameters
-            {
-
-                double radiusAttr;
-                shape.GetRadiusAttr().Get(&radiusAttr);
-                radius *= (float)radiusAttr;
-            }
-
-            outSphereShapeDesc->radius = fabsf(radius);
+            outSphereShapeDesc->radius = fabsf((float)radiusAttr);
             outSphereShapeDesc->primPath = collisionAPI.GetPrim().GetPrimPath();
 
             _FinalizeCollisionDesc(collisionAPI, outSphereShapeDesc);
@@ -804,9 +787,6 @@ bool _ParseSpherePointsShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomPoints shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             VtArray<float> widths;
             VtArray<GfVec3f> positions;
             shape.GetWidthsAttr().Get(&widths);
@@ -815,21 +795,12 @@ bool _ParseSpherePointsShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
                 shape.GetPointsAttr().Get(&positions);
                 if (positions.size() == widths.size())
                 {
-                    float sphereScale = 1.0f;
-                    {
-                        const GfVec3d sc = tr.GetScale();
-
-                        sphereScale = fmaxf(fmaxf(fabsf(float(sc[1])), 
-                                                  fabsf(float(sc[0]))),
-                                            fabsf(float(sc[2])));
-                    }
-
                     const size_t scount = positions.size();
                     outSpherePointsShapeDesc->spherePoints.resize(scount);
                     for (size_t i = 0; i < scount; i++)
                     {
                         outSpherePointsShapeDesc->spherePoints[i].radius =
-                            sphereScale * widths[i] * 0.5f;
+                            widths[i] * 0.5f;
                         outSpherePointsShapeDesc->spherePoints[i].center =
                             positions[i];
                     }

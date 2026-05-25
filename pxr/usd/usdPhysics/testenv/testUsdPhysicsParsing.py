@@ -143,9 +143,8 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                         # common shape
                         compare_shape_params(desc)
 
-                        # sphere shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
+                        # sphere shape - raw attribute, scale in localScale
+                        self.assertEqual(desc.radius, params["radius"])
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CapsuleShape:
@@ -244,18 +243,18 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                         # common shape
                         compare_shape_params(desc)
 
-                        # sphere points shape
+                        # sphere points shape - raw widths, scale in localScale
                         self.assertTrue(len(desc.spherePoints) == 2)
                         self.assertTrue(
                             desc.spherePoints[0].center == Gf.Vec3f(1.0))
                         self.assertTrue(
                             desc.spherePoints[1].center == Gf.Vec3f(2.0))
-                        # scale * width * 0.5
+                        # width * 0.5 (no scale baked)
                         self.assertTrue(
-                            desc.spherePoints[0].radius == 7.5)
-                        # scale * width * 0.5
+                            desc.spherePoints[0].radius == 2.5)
+                        # width * 0.5 (no scale baked)
                         self.assertTrue(
-                            desc.spherePoints[1].radius == 15.0)
+                            desc.spherePoints[1].radius == 5.0)
 
                         num_shape_found = num_shape_found + 1
 
