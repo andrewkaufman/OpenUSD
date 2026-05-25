@@ -362,7 +362,8 @@ _GetColliderErrors(const UsdPrim &usdPrim,
                     primErrorSites,
                     TfStringPrintf(
                         "UsdGeomPlane collider must be static and cannot be "
-                        "attached to a dynamic rigid body, prim path: %s",
+                        "attached to a dynamic nor kinematic rigid body, "
+                        "prim path: %s",
                         usdPrim.GetPath().GetText())
                 );
             }
@@ -380,13 +381,24 @@ _GetColliderErrors(const UsdPrim &usdPrim,
             const UsdGeomPrimvar widthsPrimvar =
                 primvarsAPI.GetPrimvar(TfToken("widths"));
 
+            std::string widthsSource;
             if (widthsPrimvar && widthsPrimvar.HasAuthoredValue())
             {
-                widthsPrimvar.ComputeFlattened(&widths);
+                if (widthsPrimvar.IsIndexed())
+                {
+                    widthsPrimvar.ComputeFlattened(&widths);
+                    widthsSource = "primvars:widths (indexed, flattened)";
+                }
+                else
+                {
+                    widthsPrimvar.ComputeFlattened(&widths);
+                    widthsSource = "primvars:widths";
+                }
             }
             else
             {
                 shape.GetWidthsAttr().Get(&widths);
+                widthsSource = "widths";
             }
 
             if (widths.empty() || positions.empty() ||
@@ -397,9 +409,10 @@ _GetColliderErrors(const UsdPrim &usdPrim,
                     UsdValidationErrorType::Error,
                     primErrorSites,
                     TfStringPrintf(
-                        "UsdGeomPoints width or position array not filled "
-                        "or sizes do not match, prim path: %s",
-                        usdPrim.GetPath().GetText())
+                        "UsdGeomPoints %s array has %zu elements but points "
+                        "has %zu elements, prim path: %s",
+                        widthsSource.c_str(), widths.size(),
+                        positions.size(), usdPrim.GetPath().GetText())
                 );
             }
         }
