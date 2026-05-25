@@ -26,6 +26,8 @@
 #include "pxr/usd/usdGeom/cylinder_1.h"
 #include "pxr/usd/usdGeom/plane.h"
 #include "pxr/usd/usdGeom/points.h"
+#include "pxr/usd/usdGeom/primvar.h"
+#include "pxr/usd/usdGeom/primvarsAPI.h"
 #include "pxr/usd/usdGeom/xformable.h"
 #include "pxr/usd/usdPhysics/rigidBodyAPI.h"
 #include "pxr/usd/usdPhysics/massAPI.h"
@@ -368,25 +370,37 @@ _GetColliderErrors(const UsdPrim &usdPrim,
 
         if (usdPrim.IsA<UsdGeomPoints>())
         {
+            const UsdGeomPoints shape(usdPrim);
+
+            VtArray<float> widths;
+            VtArray<GfVec3f> positions;
+            shape.GetPointsAttr().Get(&positions);
+
+            const UsdGeomPrimvarsAPI primvarsAPI(usdPrim);
+            const UsdGeomPrimvar widthsPrimvar =
+                primvarsAPI.GetPrimvar(TfToken("widths"));
+
+            if (widthsPrimvar && widthsPrimvar.HasAuthoredValue())
             {
-                const UsdGeomPoints shape(usdPrim);
-
-                VtArray<float> widths;
-                VtArray<GfVec3f> positions;
+                widthsPrimvar.ComputeFlattened(&widths);
+            }
+            else
+            {
                 shape.GetWidthsAttr().Get(&widths);
-                shape.GetPointsAttr().Get(&positions);
+            }
 
-                if (widths.empty() || positions.empty() || widths.size() != positions.size())
-                {
-                    errors.emplace_back(
-                        UsdPhysicsValidationErrorNameTokens->colliderSpherePointsDataMissing,
-                        UsdValidationErrorType::Error,
-                        primErrorSites,
-                        TfStringPrintf(
-                            "UsdGeomPoints width or position array not filled or sizes do not match, prim path: %s",
-                            usdPrim.GetPath().GetText())
-                    );
-                }
+            if (widths.empty() || positions.empty() ||
+                widths.size() != positions.size())
+            {
+                errors.emplace_back(
+                    UsdPhysicsValidationErrorNameTokens->colliderSpherePointsDataMissing,
+                    UsdValidationErrorType::Error,
+                    primErrorSites,
+                    TfStringPrintf(
+                        "UsdGeomPoints width or position array not filled "
+                        "or sizes do not match, prim path: %s",
+                        usdPrim.GetPath().GetText())
+                );
             }
         }
 
