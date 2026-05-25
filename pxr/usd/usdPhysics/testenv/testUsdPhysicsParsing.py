@@ -140,11 +140,10 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                     scene_found = True
                 elif key == UsdPhysics.ObjectType.SphereShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # sphere shape - raw attribute, scale in localScale
                         self.assertEqual(desc.radius, params["radius"])
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CapsuleShape:
@@ -220,10 +219,9 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.SpherePointsShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # sphere points shape - raw widths, scale in localScale
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
                         self.assertTrue(len(desc.spherePoints) == 2)
                         self.assertTrue(
                             desc.spherePoints[0].center == Gf.Vec3f(1.0))

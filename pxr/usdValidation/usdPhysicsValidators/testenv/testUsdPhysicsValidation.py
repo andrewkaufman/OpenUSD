@@ -175,21 +175,21 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         self.assertTrue(stage)
 
         UsdGeom.Scope.Define(stage, "/scope")
-        physicsJoint = UsdPhysics.Joint.Define(stage, "/joint")
-        physicsJoint.GetBody0Rel().AddTarget("/scope")
-
-        errors = validator.Validate(physicsJoint.GetPrim())
-        errorNames = [e.GetName() for e in errors]
-        self.assertIn("JointRelNotXformable", errorNames)
-
-        # Xform is Xformable — should not trigger JointRelNotXformable
         xform = UsdGeom.Xform.Define(stage, "/xform")
         UsdPhysics.RigidBodyAPI.Apply(xform.GetPrim())
 
-        physicsJoint2 = UsdPhysics.Joint.Define(stage, "/joint2")
-        physicsJoint2.GetBody0Rel().AddTarget("/xform")
+        physicsJoint = UsdPhysics.Joint.Define(stage, "/joint")
+        physicsJoint.GetBody0Rel().AddTarget("/scope")
+        physicsJoint.GetBody1Rel().AddTarget("/xform")
 
-        errors = validator.Validate(physicsJoint2.GetPrim())
+        errors = validator.Validate(physicsJoint.GetPrim())
+        self.assertTrue(len(errors) == 1)
+        self.assertTrue(errors[0].GetName() == "JointRelNotXformable")
+
+        # Xform is Xformable — should not trigger JointRelNotXformable
+        physicsJoint.GetBody0Rel().SetTargets(["/xform"])
+
+        errors = validator.Validate(physicsJoint.GetPrim())
         errorNames = [e.GetName() for e in errors]
         self.assertNotIn("JointRelNotXformable", errorNames)
 
