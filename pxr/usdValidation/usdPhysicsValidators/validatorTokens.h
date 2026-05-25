@@ -31,6 +31,8 @@ PXR_NAMESPACE_OPEN_SCOPE
     ((rigidBodyNonXformable,  "RigidBodyNonXformable"))                    \
     ((rigidBodyNonInstanceable,  "RigidBodyNonInstanceable"))              \
     ((jointInvalidPrimRel,  "JointInvalidPrimRel"))                        \
+    ((jointRelNotXformable, "JointRelNotXformable"))                      \
+    ((jointNoEnabledRigidBody, "JointNoEnabledRigidBody"))                \
     ((jointMultiplePrimsRel,  "JointMultiplePrimsRel"))                    \
     ((colliderPlaneNotStatic, "ColliderPlaneNotStatic"))                    \
     ((colliderSpherePointsDataMissing, "ColliderSpherePointsDataMissing")) \
