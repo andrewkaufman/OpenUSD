@@ -140,90 +140,77 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                     scene_found = True
                 elif key == UsdPhysics.ObjectType.SphereShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # sphere shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CapsuleShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.Capsule1Shape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule_1 shape
-                        self.assertEqual(desc.topRadius, 
-                                         params["topRadius"] * scale[0])
-                        self.assertEqual(desc.bottomRadius, 
-                                         params["bottomRadius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.topRadius, params["topRadius"])
+                        self.assertEqual(desc.bottomRadius,
+                                         params["bottomRadius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.ConeShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # cone shape
-                        self.assertEqual(desc.radius, 
-                                params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Z)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.CylinderShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # cylinder shape
-                        self.assertEqual(desc.radius, 
-                                         params["radius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.radius, params["radius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.Cylinder1Shape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # capsule_1 shape
-                        self.assertEqual(desc.topRadius, 
-                                         params["topRadius"] * scale[0])
-                        self.assertEqual(desc.bottomRadius, 
-                                         params["bottomRadius"] * scale[0])
-                        self.assertEqual(desc.halfHeight, 
-                                         params["height"] * 0.5 * scale[0])
+                        self.assertEqual(desc.topRadius, params["topRadius"])
+                        self.assertEqual(desc.bottomRadius,
+                                         params["bottomRadius"])
+                        self.assertEqual(desc.halfHeight,
+                                         params["height"] * 0.5)
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Y)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.PlaneShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # plane shape
                         self.assertEqual(desc.axis, UsdPhysics.Axis.Z)
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
 
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.MeshShape:
@@ -241,21 +228,20 @@ class TestUsdPhysicsParsing(unittest.TestCase):
                         num_shape_found = num_shape_found + 1
                 elif key == UsdPhysics.ObjectType.SpherePointsShape:
                     for prim_path, desc in zip(prim_paths, descs):
-                        # common shape
                         compare_shape_params(desc)
-
-                        # sphere points shape
+                        self.assertTrue(Gf.IsClose(scale, desc.localScale,
+                                                   toleranceEpsilon))
                         self.assertTrue(len(desc.spherePoints) == 2)
                         self.assertTrue(
                             desc.spherePoints[0].center == Gf.Vec3f(1.0))
                         self.assertTrue(
                             desc.spherePoints[1].center == Gf.Vec3f(2.0))
-                        # scale * width * 0.5
+                        # width * 0.5 (no scale baked)
                         self.assertTrue(
-                            desc.spherePoints[0].radius == 7.5)
-                        # scale * width * 0.5
+                            desc.spherePoints[0].radius == 2.5)
+                        # width * 0.5 (no scale baked)
                         self.assertTrue(
-                            desc.spherePoints[1].radius == 15.0)
+                            desc.spherePoints[1].radius == 5.0)
 
                         num_shape_found = num_shape_found + 1
 

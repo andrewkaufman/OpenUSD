@@ -207,9 +207,8 @@ struct UsdPhysicsCollisionGroupDesc : UsdPhysicsObjectDesc
 ///
 /// Shape descriptor, base class should not be reported
 ///
-/// Note as scale is not supported in most physics engines,
-/// the collision shape sizes already contain the scale.
-/// The exception are mesh collisions which do have geometry scale reported.
+/// Shape dimensions reflect authored attribute values without scale baked in.
+/// Non-uniform scale is preserved in localScale.
 ///
 struct UsdPhysicsShapeDesc : UsdPhysicsObjectDesc
 {
