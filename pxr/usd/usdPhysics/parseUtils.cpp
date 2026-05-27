@@ -420,14 +420,11 @@ bool _ParseCapsuleShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCapsule shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             float radius = 1.0f;
             float halfHeight = 1.0f;
             UsdPhysicsAxis axis = UsdPhysicsAxis::X;
 
-            _GetAxisRadiusHalfHeight(shape, tr, usdPrim.GetPrimPath(), &axis, 
+            _GetAxisRadiusHalfHeight(shape, usdPrim.GetPrimPath(), &axis,
                 &radius, &halfHeight);
 
             outCapsuleShapeDesc->radius = fabsf(radius);
@@ -550,14 +547,11 @@ bool _ParseConeShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCone shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             float radius = 1.0f;
             float halfHeight = 1.0f;
             UsdPhysicsAxis axis = UsdPhysicsAxis::X;
 
-            _GetAxisRadiusHalfHeight(shape, tr, usdPrim.GetPrimPath(), &axis, 
+            _GetAxisRadiusHalfHeight(shape, usdPrim.GetPrimPath(), &axis,
                 &radius, &halfHeight);
 
             outConeShapeDesc->radius = fabsf(radius);
