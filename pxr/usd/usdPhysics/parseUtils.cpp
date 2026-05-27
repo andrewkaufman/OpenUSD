@@ -253,27 +253,10 @@ bool _ParseSphereShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomSphere shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
+            double radiusAttr;
+            shape.GetRadiusAttr().Get(&radiusAttr);
 
-            float radius = 1.0f;
-
-            // Check scale, its part of the collision size
-            {
-                const GfVec3d sc = tr.GetScale();
-                radius = fmaxf(fmaxf(fabsf(float(sc[1])), fabsf(float(sc[0]))),
-                    fabsf(float(sc[2])));
-            }
-
-            // Get shape parameters
-            {
-
-                double radiusAttr;
-                shape.GetRadiusAttr().Get(&radiusAttr);
-                radius *= (float)radiusAttr;
-            }
-
-            outSphereShapeDesc->radius = fabsf(radius);
+            outSphereShapeDesc->radius = fabsf((float)radiusAttr);
             outSphereShapeDesc->primPath = collisionAPI.GetPrim().GetPrimPath();
 
             _FinalizeCollisionDesc(collisionAPI, outSphereShapeDesc);
@@ -304,30 +287,10 @@ bool _ParseCubeShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCube shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
-            GfVec3f halfExtents;
-
-            // Add scale
-            {
-                const GfVec3d sc = tr.GetScale();
-                // scale is taken, its a part of the cube size, as the physics 
-                // does not support scale
-                halfExtents = GfVec3f(sc);
-            }
-
-            // Get shape parameters
-            {
-                UsdGeomCube shape(usdPrim);
-                double sizeAttr;
-                shape.GetSizeAttr().Get(&sizeAttr);
-                // convert cube edge length to half extend
-                sizeAttr = abs(sizeAttr) * 0.5f;
-                halfExtents *= (float)sizeAttr;
-            }
-
-            outCubeShapeDesc->halfExtents = halfExtents;
+            double sizeAttr;
+            shape.GetSizeAttr().Get(&sizeAttr);
+            const float halfSize = fabsf((float)sizeAttr) * 0.5f;
+            outCubeShapeDesc->halfExtents = GfVec3f(halfSize);
             outCubeShapeDesc->primPath = collisionAPI.GetPrim().GetPrimPath();
 
             _FinalizeCollisionDesc(collisionAPI, outCubeShapeDesc);
@@ -350,107 +313,58 @@ bool _ParseCubeShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
 }
 
 template<typename T>
-void _GetAxisRadiusHalfHeight(const T& shape, const GfTransform& tr, 
-    const SdfPath& primPath, UsdPhysicsAxis* outAxis, float* outRadius, 
+void _GetAxisRadiusHalfHeight(const T& shape,
+    const SdfPath& primPath, UsdPhysicsAxis* outAxis, float* outRadius,
     float* outHalfHeight)
 {
-    // Get shape parameters
-    {
-        double radiusAttr;
-        shape.GetRadiusAttr().Get(&radiusAttr);
-        double heightAttr;
-        shape.GetHeightAttr().Get(&heightAttr);
-        *outRadius = (float)radiusAttr;
-        *outHalfHeight = (float)heightAttr * 0.5f;
+    double radiusAttr;
+    shape.GetRadiusAttr().Get(&radiusAttr);
+    double heightAttr;
+    shape.GetHeightAttr().Get(&heightAttr);
+    *outRadius = (float)radiusAttr;
+    *outHalfHeight = (float)heightAttr * 0.5f;
 
-        TfToken capAxis;
-        if (shape.GetAxisAttr())
-        {
-            shape.GetAxisAttr().Get(&capAxis);
-            if (capAxis == UsdPhysicsTokens.Get()->y)
-            {
-                *outAxis = UsdPhysicsAxis::Y;
-            }
-            else if (capAxis == UsdPhysicsTokens.Get()->z)
-            {
-                *outAxis = UsdPhysicsAxis::Z;
-            }
-        }
-    }
-
+    TfToken capAxis;
+    if (shape.GetAxisAttr())
     {
-        // scale the radius and height based on the given axis token
-        const GfVec3d sc = tr.GetScale();        
-        if (*outAxis == UsdPhysicsAxis::X)
+        shape.GetAxisAttr().Get(&capAxis);
+        if (capAxis == UsdPhysicsTokens.Get()->y)
         {
-            *outHalfHeight *= float(sc[0]);
-            *outRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[2])));
+            *outAxis = UsdPhysicsAxis::Y;
         }
-        else if (*outAxis == UsdPhysicsAxis::Y)
+        else if (capAxis == UsdPhysicsTokens.Get()->z)
         {
-            *outHalfHeight *= float(sc[1]);
-            *outRadius *= fmaxf(fabsf(float(sc[0])), fabsf(float(sc[2])));
-        }
-        else
-        {
-            *outHalfHeight *= float(sc[2]);
-            *outRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[0])));
+            *outAxis = UsdPhysicsAxis::Z;
         }
     }
 }
 
 template<typename T>
-void _GetAxisTopBottomRadiusHalfHeight(const T& shape, const GfTransform& tr, 
-    const SdfPath& primPath, UsdPhysicsAxis* outAxis, float* outTopRadius, 
+void _GetAxisTopBottomRadiusHalfHeight(const T& shape,
+    const SdfPath& primPath, UsdPhysicsAxis* outAxis, float* outTopRadius,
     float* outBottomRadius, float* outHalfHeight)
 {
-    // Get shape parameters
-    {
-        double topRadiusAttr;
-        shape.GetRadiusTopAttr().Get(&topRadiusAttr);
-        double bottomRadiusAttr;
-        shape.GetRadiusBottomAttr().Get(&bottomRadiusAttr);
-        double heightAttr;
-        shape.GetHeightAttr().Get(&heightAttr);
-        *outTopRadius = (float)topRadiusAttr;
-        *outBottomRadius = (float)bottomRadiusAttr;
-        *outHalfHeight = (float)heightAttr * 0.5f;
+    double topRadiusAttr;
+    shape.GetRadiusTopAttr().Get(&topRadiusAttr);
+    double bottomRadiusAttr;
+    shape.GetRadiusBottomAttr().Get(&bottomRadiusAttr);
+    double heightAttr;
+    shape.GetHeightAttr().Get(&heightAttr);
+    *outTopRadius = (float)topRadiusAttr;
+    *outBottomRadius = (float)bottomRadiusAttr;
+    *outHalfHeight = (float)heightAttr * 0.5f;
 
-        TfToken capAxis;
-        if (shape.GetAxisAttr())
-        {
-            shape.GetAxisAttr().Get(&capAxis);
-            if (capAxis == UsdPhysicsTokens.Get()->y)
-            {
-                *outAxis = UsdPhysicsAxis::Y;
-            }
-            else if (capAxis == UsdPhysicsTokens.Get()->z)
-            {
-                *outAxis = UsdPhysicsAxis::Z;
-            }
-        }
-    }
-
+    TfToken capAxis;
+    if (shape.GetAxisAttr())
     {
-        // scale the radius and height based on the given axis token
-        const GfVec3d sc = tr.GetScale();        
-        if (*outAxis == UsdPhysicsAxis::X)
+        shape.GetAxisAttr().Get(&capAxis);
+        if (capAxis == UsdPhysicsTokens.Get()->y)
         {
-            *outHalfHeight *= float(sc[0]);
-            *outTopRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[2])));
-            *outBottomRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[2])));
+            *outAxis = UsdPhysicsAxis::Y;
         }
-        else if (*outAxis == UsdPhysicsAxis::Y)
+        else if (capAxis == UsdPhysicsTokens.Get()->z)
         {
-            *outHalfHeight *= float(sc[1]);
-            *outTopRadius *= fmaxf(fabsf(float(sc[0])), fabsf(float(sc[2])));
-            *outBottomRadius *= fmaxf(fabsf(float(sc[0])), fabsf(float(sc[2])));
-        }
-        else
-        {
-            *outHalfHeight *= float(sc[2]);
-            *outTopRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[0])));
-            *outBottomRadius *= fmaxf(fabsf(float(sc[1])), fabsf(float(sc[0])));
+            *outAxis = UsdPhysicsAxis::Z;
         }
     }
 }
@@ -465,14 +379,11 @@ bool _ParseCylinderShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCylinder shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             float radius = 1.0f;
             float halfHeight = 1.0f;
             UsdPhysicsAxis axis = UsdPhysicsAxis::X;
 
-            _GetAxisRadiusHalfHeight(shape, tr, usdPrim.GetPrimPath(), &axis,
+            _GetAxisRadiusHalfHeight(shape, usdPrim.GetPrimPath(), &axis,
                 &radius, &halfHeight);
 
             outCylinderShapeDesc->radius = fabsf(radius);
@@ -553,15 +464,12 @@ bool _ParseCapsule1ShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCapsule_1 shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             float topRadius = 1.0f;
             float bottomRadius = 1.0f;
             float halfHeight = 1.0f;
             UsdPhysicsAxis axis = UsdPhysicsAxis::X;
 
-            _GetAxisTopBottomRadiusHalfHeight(shape, tr, usdPrim.GetPrimPath(), 
+            _GetAxisTopBottomRadiusHalfHeight(shape, usdPrim.GetPrimPath(),
                 &axis, &topRadius, &bottomRadius, &halfHeight);
 
             outCapsule1ShapeDesc->topRadius = fabsf(topRadius);
@@ -599,15 +507,12 @@ bool _ParseCylinder1ShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomCylinder_1 shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             float topRadius = 1.0f;
             float bottomRadius = 1.0f;
             float halfHeight = 1.0f;
             UsdPhysicsAxis axis = UsdPhysicsAxis::X;
 
-            _GetAxisTopBottomRadiusHalfHeight(shape, tr, usdPrim.GetPrimPath(), 
+            _GetAxisTopBottomRadiusHalfHeight(shape, usdPrim.GetPrimPath(),
                 &axis, &topRadius, &bottomRadius, &halfHeight);
 
             outCylinder1ShapeDesc->topRadius = fabsf(topRadius);
@@ -804,9 +709,6 @@ bool _ParseSpherePointsShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
         const UsdGeomPoints shape(usdPrim);
         if (shape)
         {
-            const GfTransform tr(
-                shape.ComputeLocalToWorldTransform(UsdTimeCode::Default()));
-
             VtArray<float> widths;
             VtArray<GfVec3f> positions;
             shape.GetWidthsAttr().Get(&widths);
@@ -815,21 +717,12 @@ bool _ParseSpherePointsShapeDesc(const UsdPhysicsCollisionAPI& collisionAPI,
                 shape.GetPointsAttr().Get(&positions);
                 if (positions.size() == widths.size())
                 {
-                    float sphereScale = 1.0f;
-                    {
-                        const GfVec3d sc = tr.GetScale();
-
-                        sphereScale = fmaxf(fmaxf(fabsf(float(sc[1])), 
-                                                  fabsf(float(sc[0]))),
-                                            fabsf(float(sc[2])));
-                    }
-
                     const size_t scount = positions.size();
                     outSpherePointsShapeDesc->spherePoints.resize(scount);
                     for (size_t i = 0; i < scount; i++)
                     {
                         outSpherePointsShapeDesc->spherePoints[i].radius =
-                            sphereScale * widths[i] * 0.5f;
+                            widths[i] * 0.5f;
                         outSpherePointsShapeDesc->spherePoints[i].center =
                             positions[i];
                     }

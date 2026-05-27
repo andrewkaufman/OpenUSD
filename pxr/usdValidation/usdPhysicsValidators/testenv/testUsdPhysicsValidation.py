@@ -187,7 +187,7 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         self.assertTrue(len(errors) == 1)
         self.assertTrue(errors[0].GetName() == "JointMultiplePrimsRel")
 
-    def test_collider_non_uniform_scale(self):
+    def test_collider_non_uniform_scale_allowed(self):
         validationRegistry = UsdValidation.ValidationRegistry()
         validator = validationRegistry.GetOrLoadValidatorByName(
             "usdPhysicsValidators:ColliderChecker"
@@ -200,20 +200,14 @@ class TestUsdPhysicsValidation(unittest.TestCase):
 
         shapes = [ UsdGeom.Sphere, UsdGeom.Capsule, UsdGeom.Cone, UsdGeom.Cylinder ]
 
-        for shapeType in shapes:
-            shape = shapeType.Define(stage, "/shape")
+        for i, shapeType in enumerate(shapes):
+            shape = shapeType.Define(stage, "/shape%d" % i)
             UsdPhysics.CollisionAPI.Apply(shape.GetPrim())
-
-            errors = validator.Validate(shape.GetPrim())
-            self.assertTrue(len(errors) == 0)
 
             shape.AddScaleOp().Set(Gf.Vec3d(1,2,3))
 
             errors = validator.Validate(shape.GetPrim())
-            self.assertTrue(len(errors) == 1)
-            self.assertTrue(errors[0].GetName() == "ColliderNonUniformScale")
-
-            stage.RemovePrim(shape.GetPrim().GetPrimPath())
+            self.assertTrue(len(errors) == 0)
 
 
     def test_points_collider(self):
@@ -256,16 +250,6 @@ class TestUsdPhysicsValidation(unittest.TestCase):
         errors = validator.Validate(shape.GetPrim())
         self.assertTrue(len(errors) == 1)
         self.assertTrue(errors[0].GetName() == "ColliderSpherePointsDataMissing")
-
-        shape.AddScaleOp().Set(Gf.Vec3d(1,2,3))
-        shape.GetWidthsAttr().Set([1])
-        shape.GetPointsAttr().Set([Gf.Vec3f(1.0)])
-
-        errors = validator.Validate(shape.GetPrim())
-        self.assertTrue(len(errors) == 1)
-        self.assertTrue(errors[0].GetName() == "ColliderNonUniformScale")
-
-        stage.RemovePrim(shape.GetPrim().GetPrimPath())
 
     def test_rigid_body_mass_api(self):
         validationRegistry = UsdValidation.ValidationRegistry()
