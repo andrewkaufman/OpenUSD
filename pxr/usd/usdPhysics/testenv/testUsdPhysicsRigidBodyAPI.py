@@ -591,6 +591,37 @@ class TestUsdPhysicsRigidBodyAPI(unittest.TestCase):
         # Only the single enabled unit cube (default density 1000) contributes.
         self.compare_mass_information(rigidBodyAPI, 1000.0, expectedCoM=Gf.Vec3f(0.0), expectedInertia=Gf.Vec3f(166.667))
 
+    def test_get_collision_prims(self):
+        self.setup_scene()
+
+        # top level xform - rigid body
+        self.xform = UsdGeom.Xform.Define(self.stage, "/xform")
+        rigidBodyAPI = UsdPhysics.RigidBodyAPI.Apply(self.xform.GetPrim())
+
+        # Enabled collider - should be returned.
+        enabled = UsdGeom.Cube.Define(self.stage, "/xform/enabled")
+        UsdPhysics.CollisionAPI.Apply(enabled.GetPrim())
+
+        # Disabled collider - should be excluded.
+        disabled = UsdGeom.Cube.Define(self.stage, "/xform/disabled")
+        disabledCollisionAPI = UsdPhysics.CollisionAPI.Apply(disabled.GetPrim())
+        disabledCollisionAPI.GetCollisionEnabledAttr().Set(False)
+
+        # A collider owned by a nested rigid body - should be pruned, since it
+        # belongs to the nested body, not to this one.
+        nestedBody = UsdGeom.Xform.Define(self.stage, "/xform/nestedBody")
+        UsdPhysics.RigidBodyAPI.Apply(nestedBody.GetPrim())
+        nestedCollider = UsdGeom.Cube.Define(self.stage, "/xform/nestedBody/collider")
+        UsdPhysics.CollisionAPI.Apply(nestedCollider.GetPrim())
+
+        collisionPrims = rigidBodyAPI.GetCollisionPrims()
+        collisionPaths = set(p.GetPath() for p in collisionPrims)
+
+        # Only the enabled collider owned directly by this body is returned.
+        self.assertEqual(collisionPaths, {enabled.GetPrim().GetPath()})
+        self.assertNotIn(disabled.GetPrim().GetPath(), collisionPaths)
+        self.assertNotIn(nestedCollider.GetPrim().GetPath(), collisionPaths)
+
     def test_mass_rigid_body_nested(self):
         self.setup_scene()
 
