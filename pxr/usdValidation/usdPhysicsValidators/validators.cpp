@@ -583,8 +583,12 @@ bool HasEnabledRigidBody(const SdfPath& relPath, const UsdPrim& jointPrim)
         return false;
     }
 
-    bool physicsAPIFound = false;
-    return IsDynamicBody(relPrim, &physicsAPIFound);
+    // A body relationship may target any UsdGeomXformable, not only the prim
+    // carrying the RigidBodyAPI. Joint parsing resolves such a target to its
+    // closest ancestor body, so search the ancestors here as well, otherwise a
+    // joint targeting a collider below a body is reported as bodyless.
+    UsdPrim bodyPrim;
+    return HasDynamicBodyParent(relPrim, &bodyPrim);
 }
 
 
