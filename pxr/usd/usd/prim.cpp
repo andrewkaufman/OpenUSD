@@ -295,7 +295,7 @@ UsdPrim::_HasAPI(const UsdSchemaRegistry::SchemaInfo *schemaInfo) const
         return false;
     }
 
-    const TfTokenVector appliedSchemas = GetAppliedSchemas();
+    const TfTokenVector &appliedSchemas = GetAppliedSchemas();
     if (appliedSchemas.empty()) {
         return false;
     }
@@ -317,7 +317,7 @@ UsdPrim::_HasAPIInstance(
         return false;
     }
 
-    const TfTokenVector appliedSchemas = GetAppliedSchemas();
+    const TfTokenVector &appliedSchemas = GetAppliedSchemas();
     if (appliedSchemas.empty()) {
         return false;
     }
@@ -381,7 +381,7 @@ const UsdSchemaRegistry::SchemaInfo *
 _GetFirstSchemaInFamilyPrimHasAPI(
     const UsdPrim &prim, const FindInFamilyArgs &... findInFamilyArgs) 
 {
-    const TfTokenVector appliedSchemas = prim.GetAppliedSchemas();
+    const TfTokenVector &appliedSchemas = prim.GetAppliedSchemas();
     if (appliedSchemas.empty()) {
         return nullptr;
     }
@@ -412,7 +412,7 @@ _GetFirstSchemaInFamilyPrimHasAPIInstance(
         return nullptr;
     }
 
-    const TfTokenVector appliedSchemas = prim.GetAppliedSchemas();
+    const TfTokenVector &appliedSchemas = prim.GetAppliedSchemas();
     if (appliedSchemas.empty()) {
         return nullptr;
     }
