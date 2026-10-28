@@ -301,6 +301,9 @@ TestUsdAttributeHardLimits()
             float softLimits = 2 (
                 limits = { dictionary soft = { float maximum = 1 } }
             )
+            float conformedFloat = 0.1 (
+                limits = { dictionary hard = { double maximum = 0.1 } }
+            )
             color3f vector = (0, 0.5, 1) (
                 limits = { dictionary hard = {
                     color3f minimum = (0, 0, 0)
@@ -356,8 +359,9 @@ TestUsdAttributeHardLimits()
     )usda");
     const UsdStageRefPtr usdStage = UsdStage::Open(layer);
 
-    // Values within their hard limits, values with only soft limits, and
-    // values of types that hard limits do not apply to are valid.
+    // Values within their hard limits, including limits conformed to the
+    // attribute's value type, values with only soft limits, and values of
+    // types that hard limits do not apply to are valid.
     _VerifyAttributeErrors(validator, errorName, usdStage, "/Valid", {});
 
     // Values outside their hard limits are invalid. NaN is never within the
