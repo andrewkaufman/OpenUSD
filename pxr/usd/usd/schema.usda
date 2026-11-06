@@ -296,6 +296,17 @@ class "CollectionAPI"
     See the detailed descriptions of the built-in properties below for more
     details.
 
+    A `membershipExpression` can refer to other collections with expression
+    references, written `%<primPath>:<name>` for the collection named `name` on
+    the prim at `primPath`, or `%:<name>` for a collection on the same prim.  A
+    reference to a collection in *expression-mode* stands for that collection's
+    `membershipExpression`, with its own references resolved in turn.  A
+    reference to a collection in *relationship-mode* stands for an expression
+    that matches the same paths as that collection's `includes`, `excludes`,
+    and `includeRoot`.  A reference to a collection that does not exist, or one
+    that would make collections refer to each other in a cycle, stands for the
+    empty expression.
+
     \\section usd_collectionapi_properties Collection API Properties
 
     The built-in properties for this schema are in the `collection:instanceName`
@@ -381,7 +392,10 @@ class "CollectionAPI"
 
     <li>`uniform pathExpression collection:instanceName:membershipExpression` -
     in *expression-mode*, defines the SdfPathExpression used to test
-    objects for collection membership.</li>
+    objects for collection membership.  It can reference other collections,
+    whether in *expression-mode* or *relationship-mode*, with expression
+    references such as `%/prim:name`.  This attribute is ignored in
+    *relationship-mode*.</li>
 
     </ul>
 
@@ -453,7 +467,10 @@ class "CollectionAPI"
     )
     uniform pathExpression membershipExpression (
         doc = """Specifies a path expression that determines membership in this
-        collection."""
+        collection when it is in *expression-mode*.  The expression can
+        reference other collections, whether in *expression-mode* or
+        *relationship-mode*, with expression references such as `%/prim:name`;
+        see the CollectionAPI schema documentation."""
     )
     uniform token mode = "automatic" (
         allowedTokens = ["automatic", "relationship", "expression"]

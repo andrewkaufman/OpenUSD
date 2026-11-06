@@ -130,7 +130,7 @@ class "CollectionAPI" (
     uniform pathExpression collection:__INSTANCE_NAME__:membershipExpression (
         customData = {
             string userDocBrief = """Specifies a path expression that determines membership in this
-        collection."""
+        collection when it is in *expression-mode*."""
         }
     )
     uniform token collection:__INSTANCE_NAME__:mode = "automatic" (
