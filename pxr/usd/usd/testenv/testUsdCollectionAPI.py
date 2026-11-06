@@ -936,6 +936,78 @@ class TestUsdCollectionAPI(unittest.TestCase):
                          [Sdf.Path('/World'), Sdf.Path('/World/A'),
                           Sdf.Path('/World/A/Child'), Sdf.Path('/World/B')])
 
+    def test_ModeAttrSelectsProperties(self):
+        stage = Usd.Stage.CreateInMemory()
+        for path in ('/World/A', '/World/B'):
+            stage.DefinePrim(path)
+        sets = stage.DefinePrim('/Sets')
+
+        def members(coll):
+            return Usd.ComputeIncludedPathsFromCollection(
+                coll.ComputeMembershipQuery(), stage)
+
+        def rulesExpr(coll):
+            ruleMap = coll.ComputeMembershipQuery().GetAsPathExpansionRuleMap()
+            return \
+                Usd.ComputePathExpressionFromCollectionMembershipQueryRuleMap(
+                    ruleMap)
+
+        # Explicit relationship-mode with no rules ignores its
+        # membershipExpression, even one that references itself.
+        emptyRel = Usd.CollectionAPI.Apply(sets, 'emptyRel')
+        emptyRel.CreateModeAttr(Usd.Tokens.relationship)
+        emptyRel.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/A %:emptyRel'))
+        self.assertTrue(emptyRel.IsInRelationshipsMode())
+        self.assertFalse(emptyRel.IsInExpressionMode())
+        self.assertTrue(emptyRel.HasNoIncludedPaths())
+        self.assertEqual(members(emptyRel), [])
+        self.assertEqual(emptyRel.ResolveCompleteMembershipExpression(),
+                         Sdf.PathExpression.Nothing())
+        self.assertEqual(emptyRel.Validate(), (True, ''))
+
+        # Explicit relationship-mode with rules.
+        explicitRel = Usd.CollectionAPI.Apply(sets, 'explicitRel')
+        explicitRel.CreateModeAttr(Usd.Tokens.relationship)
+        explicitRel.CreateIncludesRel().AddTarget('/World/A')
+        explicitRel.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/B'))
+        self.assertFalse(explicitRel.HasNoIncludedPaths())
+        self.assertEqual(members(explicitRel), [Sdf.Path('/World/A')])
+        self.assertEqual(explicitRel.ResolveCompleteMembershipExpression(),
+                         rulesExpr(explicitRel))
+
+        # Automatic-mode inferring relationship-mode also ignores its
+        # membershipExpression.
+        autoRel = Usd.CollectionAPI.Apply(sets, 'autoRel')
+        autoRel.CreateIncludesRel().AddTarget('/World/A')
+        autoRel.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/B'))
+        self.assertTrue(autoRel.IsInRelationshipsMode())
+        self.assertEqual(members(autoRel), [Sdf.Path('/World/A')])
+        self.assertEqual(autoRel.ResolveCompleteMembershipExpression(),
+                         rulesExpr(autoRel))
+
+        # Explicit expression-mode ignores its relationships, even a circular
+        # include.
+        explicitExpr = Usd.CollectionAPI.Apply(sets, 'explicitExpr')
+        explicitExpr.CreateModeAttr(Usd.Tokens.expression)
+        explicitExpr.CreateIncludesRel().SetTargets(
+            ['/World/A', explicitExpr.GetCollectionPath()])
+        self.assertFalse(explicitExpr.IsInRelationshipsMode())
+        self.assertTrue(explicitExpr.HasNoIncludedPaths())
+        self.assertEqual(members(explicitExpr), [])
+        self.assertEqual(explicitExpr.ResolveCompleteMembershipExpression(),
+                         Sdf.PathExpression.Nothing())
+        self.assertEqual(explicitExpr.Validate(), (True, ''))
+
+        explicitExpr.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/B'))
+        self.assertFalse(explicitExpr.HasNoIncludedPaths())
+        self.assertEqual(members(explicitExpr), [Sdf.Path('/World/B')])
+        self.assertEqual(explicitExpr.ResolveCompleteMembershipExpression(),
+                         Sdf.PathExpression('/World/B'))
+
     def test_HashMembershipQuery(self):
         self.assertEqual(
             hash(Usd.UsdCollectionMembershipQuery()),

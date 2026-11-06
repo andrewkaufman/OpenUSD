@@ -584,8 +584,16 @@ public:
         const UsdPrim &prim, 
         const TfToken &collectionName);
 
-    /// Obtain a complete SdfPathExpression from this collection's
-    /// membershipExpression.  First, UsdAttribute::Get() the value of
+    /// Obtain a complete SdfPathExpression that matches this collection's
+    /// members.
+    ///
+    /// If this collection is in *relationship-mode* (see
+    /// IsInRelationshipsMode()), return an expression that matches the same
+    /// paths as its `includes`, `excludes`, and `includeRoot` membership (see
+    /// UsdComputePathExpressionFromCollectionMembershipQueryRuleMap()).  Its
+    /// membershipExpression is ignored.
+    ///
+    /// Otherwise, first UsdAttribute::Get() the value of
     /// GetMembershipExpressionAttr(), then resolve any contained references.
     /// Replace any remaining "weaker" references (%_) with
     /// SdfPathExpression::Nothing().  Replace other references by recursively
@@ -717,6 +725,11 @@ public:
     ///   another collection.
     /// * a collection should not have both includes and excludes
     ///   among its top-level rules
+    /// * a collection's membershipExpression should not reference itself,
+    ///   directly or transitively, and should be evaluable.
+    ///
+    /// Only the properties of the collection's mode are checked; see
+    /// IsInRelationshipsMode().
     USD_API 
     bool Validate(std::string *reason) const; 
 
@@ -758,11 +771,17 @@ private:
         const SdfPathSet &chainedCollectionPaths,
         bool *foundCircularDependency=nullptr) const;
 
-    // The same as ResolveCompleteMembershipExpression(), but set
-    // `foundCircularDependency` to true if a circular dependency is encountered
-    // during resolution.
+    // Resolve this collection's membershipExpression as
+    // ResolveCompleteMembershipExpression() does in expression-mode, regardless
+    // of this collection's mode.  Set `foundCircularDependency` to true if a
+    // circular dependency is encountered during resolution.
     SdfPathExpression
     _ResolveCompleteMembershipExpression(bool *foundCircularDependency) const;
+
+    // Return true if this collection is in relationship-mode, honoring the
+    // `mode` attribute.  If so and \p rules is not nullptr, populate it with
+    // the collection's relationship-based rules.
+    bool _IsInRelationshipsMode(UsdCollectionMembershipQuery *rules) const;
 
     // If this collection is in relationship-mode, set \p expr to an expression
     // that matches the same paths as its `includes`, `excludes`, and
