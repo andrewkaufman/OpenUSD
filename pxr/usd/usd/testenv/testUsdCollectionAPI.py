@@ -861,8 +861,81 @@ class TestUsdCollectionAPI(unittest.TestCase):
         mQuery = coll.ComputeMembershipQuery();
         self.assertFalse(mQuery.IsPathIncluded('/rel'))
         self.assertTrue(mQuery.IsPathIncluded('/expr'))
-        
-        
+
+    def test_ExpressionReferenceToRelationshipsMode(self):
+        stage = Usd.Stage.CreateInMemory()
+        for path in ('/World/A', '/World/A/Child', '/World/B', '/World/C'):
+            stage.DefinePrim(path)
+        sets = stage.DefinePrim('/Sets')
+
+        def members(coll):
+            return Usd.ComputeIncludedPathsFromCollection(
+                coll.ComputeMembershipQuery(), stage)
+
+        def resolveRef(refName):
+            probe = Usd.CollectionAPI.Apply(sets, 'probe')
+            probe.CreateMembershipExpressionAttr().Set(
+                Sdf.PathExpression('/World// - %/Sets:' + refName))
+            self.assertTrue(
+                probe.ResolveCompleteMembershipExpression().IsComplete())
+            return members(probe)
+
+        # Relationship-mode via includes.
+        relIncludes = Usd.CollectionAPI.Apply(sets, 'relIncludes')
+        relIncludes.CreateIncludesRel().AddTarget('/World/A')
+        self.assertTrue(relIncludes.IsInRelationshipsMode())
+        self.assertEqual(members(relIncludes),
+                         [Sdf.Path('/World/A'), Sdf.Path('/World/A/Child')])
+        self.assertEqual(resolveRef('relIncludes'),
+                         [Sdf.Path('/World'), Sdf.Path('/World/B'),
+                          Sdf.Path('/World/C')])
+
+        # Relationship-mode via includeRoot and excludes.
+        relRoot = Usd.CollectionAPI.Apply(sets, 'relRoot')
+        relRoot.CreateIncludeRootAttr(True)
+        relRoot.CreateExcludesRel().SetTargets(
+            ['/World/B', '/World/C', '/Sets'])
+        self.assertTrue(relRoot.IsInRelationshipsMode())
+        self.assertEqual(resolveRef('relRoot'),
+                         [Sdf.Path('/World/B'), Sdf.Path('/World/C')])
+
+        # Relationship-mode that includes another collection.
+        relChained = Usd.CollectionAPI.Apply(sets, 'relChained')
+        relChained.CreateIncludesRel().SetTargets(
+            [relIncludes.GetCollectionPath(), '/World/C'])
+        self.assertEqual(resolveRef('relChained'),
+                         [Sdf.Path('/World'), Sdf.Path('/World/B')])
+
+        # Explicit relationship-mode ignores its membershipExpression.
+        explicitRel = Usd.CollectionAPI.Apply(sets, 'explicitRel')
+        explicitRel.CreateModeAttr(Usd.Tokens.relationship)
+        explicitRel.CreateIncludesRel().AddTarget('/World/B')
+        explicitRel.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/C'))
+        self.assertEqual(resolveRef('explicitRel'),
+                         [Sdf.Path('/World'), Sdf.Path('/World/A'),
+                          Sdf.Path('/World/A/Child'), Sdf.Path('/World/C')])
+
+        # Explicit relationship-mode with no rules contributes nothing.
+        emptyRel = Usd.CollectionAPI.Apply(sets, 'emptyRel')
+        emptyRel.CreateModeAttr(Usd.Tokens.relationship)
+        emptyRel.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/C'))
+        self.assertEqual(resolveRef('emptyRel'),
+                         [Sdf.Path('/World'), Sdf.Path('/World/A'),
+                          Sdf.Path('/World/A/Child'), Sdf.Path('/World/B'),
+                          Sdf.Path('/World/C')])
+
+        # Explicit expression-mode ignores its relationships.
+        explicitExpr = Usd.CollectionAPI.Apply(sets, 'explicitExpr')
+        explicitExpr.CreateModeAttr(Usd.Tokens.expression)
+        explicitExpr.CreateIncludesRel().AddTarget('/World/B')
+        explicitExpr.CreateMembershipExpressionAttr().Set(
+            Sdf.PathExpression('/World/C'))
+        self.assertEqual(resolveRef('explicitExpr'),
+                         [Sdf.Path('/World'), Sdf.Path('/World/A'),
+                          Sdf.Path('/World/A/Child'), Sdf.Path('/World/B')])
+
     def test_HashMembershipQuery(self):
         self.assertEqual(
             hash(Usd.UsdCollectionMembershipQuery()),

@@ -590,6 +590,10 @@ public:
     /// Replace any remaining "weaker" references (%_) with
     /// SdfPathExpression::Nothing().  Replace other references by recursively
     /// resolving the expressions from the collections on the referenced prims.
+    /// If a referenced collection is in *relationship-mode*, replace the
+    /// reference with an expression that matches the same paths as that
+    /// collection's `includes`, `excludes`, and `includeRoot` membership (see
+    /// UsdComputePathExpressionFromCollectionMembershipQueryRuleMap()).
     /// If no such prims or no such collections exist, replace those references
     /// with SdfPathExpression::Nothing() as well.
     USD_API
@@ -759,6 +763,13 @@ private:
     // during resolution.
     SdfPathExpression
     _ResolveCompleteMembershipExpression(bool *foundCircularDependency) const;
+
+    // If this collection is in relationship-mode, set \p expr to an expression
+    // that matches the same paths as its `includes`, `excludes`, and
+    // `includeRoot` membership, and return true.  Otherwise return false and
+    // leave \p expr unmodified.
+    bool _ComputeRelationshipsModeMembershipExpression(
+        SdfPathExpression *expr) const;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

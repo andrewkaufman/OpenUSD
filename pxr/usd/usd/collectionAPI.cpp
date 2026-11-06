@@ -393,6 +393,7 @@ PXR_NAMESPACE_CLOSE_SCOPE
 
 #include "pxr/usd/usd/primRange.h"
 
+#include "pxr/base/tf/functionRef.h"
 #include "pxr/base/tf/hash.h"
 #include "pxr/base/tf/pxrTslRobinMap/robin_set.h"
 
@@ -580,13 +581,17 @@ UsdCollectionAPI::IsInRelationshipsMode() const
     return memQuery.UsesPathExpansionRuleMap();
 }
 
+using _ComputeRelationshipsModeExprFn =
+    TfFunctionRef<bool (UsdCollectionAPI const &, SdfPathExpression *)>;
+
 static inline
 SdfPathExpression
 _ResolveCompleteMembershipExpressionImpl(
     UsdCollectionAPI const &originalColl,
     UsdCollectionAPI const &thisColl,
     pxr_tsl::robin_set<std::pair<UsdPrim, TfToken>, TfHash> &visited,
-    bool *foundCircularDependency)
+    bool *foundCircularDependency,
+    _ComputeRelationshipsModeExprFn computeRelationshipsModeExpr)
 {
     // Ensure visited contains the root, originalColl.
     if (visited.empty()) {
@@ -640,6 +645,16 @@ _ResolveCompleteMembershipExpressionImpl(
             return SdfPathExpression::Nothing();
         }
 
+        // A relationship-mode collection has no membershipExpression to
+        // resolve, so substitute an expression equivalent to its
+        // relationship-based membership.  This cannot reference other
+        // expressions, so it cannot introduce a cycle.
+        SdfPathExpression relationshipsModeExpr;
+        if (computeRelationshipsModeExpr(
+                refCollection, &relationshipsModeExpr)) {
+            return relationshipsModeExpr;
+        }
+
         // Check to see if we've visited this collection previously while
         // resolving references.  If we have, skip it, and substitute Nothing()
         // here.
@@ -668,7 +683,8 @@ _ResolveCompleteMembershipExpressionImpl(
 
         // Get the referenced collection expr fully resolved, and insert that.
         const auto ret = _ResolveCompleteMembershipExpressionImpl(
-            originalColl, refCollection, visited, foundCircularDependency);
+            originalColl, refCollection, visited, foundCircularDependency,
+            computeRelationshipsModeExpr);
 
         // Allow returning to this referenced collection down a different
         // branch.  Note that we cannot use a returned iterator from the
@@ -700,8 +716,40 @@ UsdCollectionAPI
 {
     // Track visited referenced collections to avoid infinite recursion.
     pxr_tsl::robin_set<std::pair<UsdPrim, TfToken>, TfHash> visitedCollections;
+    const auto computeRelationshipsModeExpr =
+        [](UsdCollectionAPI const &coll, SdfPathExpression *expr) {
+            return coll._ComputeRelationshipsModeMembershipExpression(expr);
+        };
     return _ResolveCompleteMembershipExpressionImpl(
-        *this, *this, visitedCollections, foundCircularDependency);
+        *this, *this, visitedCollections, foundCircularDependency,
+        computeRelationshipsModeExpr);
+}
+
+bool
+UsdCollectionAPI::_ComputeRelationshipsModeMembershipExpression(
+    SdfPathExpression *expr) const
+{
+    TfToken mode;
+    GetModeAttr().Get(&mode);
+    if (mode == UsdTokens->expression) {
+        return false;
+    }
+
+    // Compute only the relationship-based rules here, since
+    // ComputeMembershipQuery() would also resolve the membershipExpression.
+    UsdCollectionMembershipQuery query;
+    _ComputeMembershipQueryImpl(&query, { GetCollectionPath() });
+
+    // In automatic-mode, the collection is in relationship-mode only if its
+    // relationship-based properties produce rules, matching
+    // IsInRelationshipsMode().
+    if (mode != UsdTokens->relationship && !query.UsesPathExpansionRuleMap()) {
+        return false;
+    }
+
+    *expr = UsdComputePathExpressionFromCollectionMembershipQueryRuleMap(
+        query.GetAsPathExpansionRuleMap());
+    return true;
 }
 
 UsdCollectionMembershipQuery 
