@@ -1076,8 +1076,8 @@ UsdCollectionAPI::Validate(std::string *reason) const
             if (reason) {
                 *reason += "Found one or more circular dependencies amongst "
                     "collections referenced by the membershipExpression.\n";
-                return false;
             }
+            return false;
         }
 
         if (expr) {
