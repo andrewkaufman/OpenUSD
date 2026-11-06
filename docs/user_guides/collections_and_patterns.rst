@@ -537,12 +537,12 @@ in the same prim, the allFood expression could reference allFruit as:
 ``%:allFruit + /Cheese* + /Meat*``
 
 .. note::
-    Note that you can't reference a relationship-mode collection (that uses 
-    includes/excludes rules) as a sub-expression in a pattern-based collection. 
-    You can only reference other pattern-based collection expressions as 
-    sub-expressions. See :ref:`expression_for_relationship_mode_collection` for
-    details on computing the equivalent expression for a relationship-mode 
-    collection that you can then reference.
+    You can also reference a relationship-mode collection (that uses
+    includes/excludes rules) as a sub-expression in a pattern-based collection.
+    The reference resolves to an expression equivalent to the membership of the
+    relationship-mode collection. See
+    :ref:`expression_for_relationship_mode_collection` for details on computing
+    that equivalent expression yourself.
 
 .. _resolving_expressions:
 
@@ -570,12 +570,14 @@ something like:
         ...
     }
 
-USD will look for pathExpression properties with the referenced name when 
-resolving the full expression. The expressions will automatically be resolved 
-using the composed stage when the collections are queried. You can
-also get the fully resolved expression by calling 
-``ResolveCompleteMembershipExpression()``. Using the previous example, the 
-following Python example gets the fully resolved expression from the allFood 
+USD will look for pathExpression properties with the referenced name when
+resolving the full expression. If the referenced collection is in
+relationship-mode, USD instead builds an equivalent expression from its
+``includes``, ``excludes``, and ``includeRoot``. The expressions will
+automatically be resolved using the composed stage when the collections are
+queried. You can also get the fully resolved expression by calling
+``ResolveCompleteMembershipExpression()``. Using the previous example, the
+following Python example gets the fully resolved expression from the allFood
 collection.
 
 .. code-block:: python
@@ -789,15 +791,18 @@ Getting the Expression for a Relationship-Mode Collection
 
 As mentioned earlier, collections can work in relationship-mode, using
 include/exclude rules, or expression-mode, using path expressions. A collection
-can't work in both modes. Additionally, you can't reference a relationship-mode
-collection in an expression-mode collection's path expression. However, you
-can have OpenUSD compute the equivalent expression for a relationship-mode
-collection, and then reference that expression if needed. 
+can't work in both modes. You can reference a relationship-mode collection in
+an expression-mode collection's path expression, and OpenUSD substitutes the
+equivalent expression when it resolves the reference (see
+:ref:`expression_references`). You can also compute that equivalent expression
+directly, for example to convert a relationship-mode collection to an
+expression-mode collection.
 
-To compute the equivalent expression, use 
-``ComputePathExpressionFromCollectionMembershipQueryRuleMap()``. The 
-following example shows how to get the equivalent expression from a 
-relationship-mode collection. 
+To compute the equivalent expression in one call, use
+``ResolveCompleteMembershipExpression()`` on the relationship-mode collection.
+You can also compute it from the collection's membership query with
+``ComputePathExpressionFromCollectionMembershipQueryRuleMap()``, as the
+following example shows.
 
 .. code-block:: python
 
