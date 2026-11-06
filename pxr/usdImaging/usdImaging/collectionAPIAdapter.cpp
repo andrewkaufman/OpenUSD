@@ -8,7 +8,6 @@
 #include "pxr/usdImaging/usdImaging/dataSourceAttribute.h"
 
 #include "pxr/usd/usd/collectionAPI.h"
-#include "pxr/usd/usd/collectionMembershipQuery.h"
 
 #include "pxr/imaging/hd/collectionsSchema.h"
 #include "pxr/imaging/hd/retainedDataSource.h"
@@ -48,32 +47,13 @@ public:
         if (name == HdCollectionSchemaTokens->membershipExpression) {
             return
                 HdRetainedTypedSampledDataSource<SdfPathExpression>::New(
-                    _ComputePathExpressionFromCollection(_api));
+                    _api.ResolveCompleteMembershipExpression());
         }
 
         return nullptr;
     }
 
 private:
-    static SdfPathExpression
-    _ComputePathExpressionFromCollection(
-        const UsdCollectionAPI &api)
-    {
-        // A collection can be either rule-based (includes, excludes, ..)
-        // or path-expression-based.
-        // Construct a query object to determine the flavor.
-        const UsdCollectionMembershipQuery query = api.ComputeMembershipQuery();
-
-        if (query.UsesPathExpansionRuleMap()) {
-            const auto &ruleMap = query.GetAsPathExpansionRuleMap();
-            return
-                UsdComputePathExpressionFromCollectionMembershipQueryRuleMap(
-                    ruleMap);
-        }
-        
-        return api.ResolveCompleteMembershipExpression();
-    }
-
     UsdCollectionAPI _api;
 };
 

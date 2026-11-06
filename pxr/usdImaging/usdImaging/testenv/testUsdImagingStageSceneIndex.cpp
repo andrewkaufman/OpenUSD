@@ -10,11 +10,15 @@
 #include "pxr/usd/sdf/primSpec.h"
 
 #include "pxr/usd/usd/attribute.h"
+#include "pxr/usd/usd/collectionAPI.h"
+#include "pxr/usd/usd/collectionMembershipQuery.h"
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usdGeom/cube.h"
 #include "pxr/usd/usdGeom/points.h"
 #include "pxr/usd/usdShade/material.h"
 
+#include "pxr/imaging/hd/collectionSchema.h"
+#include "pxr/imaging/hd/collectionsSchema.h"
 #include "pxr/imaging/hd/dataSourceTypeDefs.h"
 #include "pxr/imaging/hd/meshTopologySchema.h"
 #include "pxr/imaging/hd/primvarsSchema.h"
@@ -824,6 +828,89 @@ void CustomPrimvarChangeTest()
     }
 }
 
+static SdfPathExpression
+_GetMembershipExpression(
+    HdSceneIndexBaseRefPtr const &sceneIndex,
+    SdfPath const &primPath,
+    TfToken const &collectionName)
+{
+    HdPathExpressionDataSourceHandle const exprSource =
+        HdCollectionsSchema::GetFromParent(
+            sceneIndex->GetPrim(primPath).dataSource)
+        .GetCollection(collectionName)
+        .GetMembershipExpression();
+    if (!TF_VERIFY(exprSource, "No membershipExpression for collection '%s'",
+                   collectionName.GetText())) {
+        return {};
+    }
+    return exprSource->GetTypedValue(0.0f);
+}
+
+void CollectionMembershipExpressionTest()
+{
+    UsdStageRefPtr stage = UsdStage::CreateInMemory();
+    if (!TF_VERIFY(stage)) {
+        return;
+    }
+    stage->DefinePrim(SdfPath("/World/A"));
+    stage->DefinePrim(SdfPath("/World/B"));
+    const SdfPath setsPath("/Sets");
+    const UsdPrim sets = stage->DefinePrim(setsPath);
+
+    // Relationship-mode, inferred from the includes.
+    const TfToken relName("rel");
+    const UsdCollectionAPI rel = UsdCollectionAPI::Apply(sets, relName);
+    rel.CreateIncludesRel().AddTarget(SdfPath("/World/A"));
+    rel.CreateMembershipExpressionAttr().Set(SdfPathExpression("/World/B"));
+    const SdfPathExpression relExpr =
+        UsdComputePathExpressionFromCollectionMembershipQueryRuleMap(
+            rel.ComputeMembershipQuery().GetAsPathExpansionRuleMap());
+
+    // Expression-mode, referencing the relationship-mode collection.
+    const TfToken refName("ref");
+    const UsdCollectionAPI ref = UsdCollectionAPI::Apply(sets, refName);
+    ref.CreateMembershipExpressionAttr().Set(
+        SdfPathExpression("/World/B %:rel"));
+    auto resolveToRelExpr =
+        [&relExpr](SdfPathExpression::ExpressionReference const &) {
+            return relExpr;
+        };
+    const SdfPathExpression refExpr =
+        SdfPathExpression("/World/B %:rel").ResolveReferences(
+            resolveToRelExpr);
+
+    // Explicit relationship-mode with no rules ignores its expression.
+    const TfToken emptyRelName("emptyRel");
+    const UsdCollectionAPI emptyRel =
+        UsdCollectionAPI::Apply(sets, emptyRelName);
+    emptyRel.CreateModeAttr(VtValue(UsdTokens->relationship));
+    emptyRel.CreateMembershipExpressionAttr().Set(
+        SdfPathExpression("/World/B"));
+
+    // Explicit expression-mode ignores its includes.
+    const TfToken exprName("expr");
+    const UsdCollectionAPI expr = UsdCollectionAPI::Apply(sets, exprName);
+    expr.CreateModeAttr(VtValue(UsdTokens->expression));
+    expr.CreateIncludesRel().AddTarget(SdfPath("/World/A"));
+    expr.CreateMembershipExpressionAttr().Set(SdfPathExpression("/World/B"));
+
+    UsdImagingStageSceneIndexRefPtr sceneIndex =
+        UsdImagingStageSceneIndex::New();
+    if (!TF_VERIFY(sceneIndex)) {
+        return;
+    }
+    sceneIndex->SetStage(stage);
+
+    TF_VERIFY(_GetMembershipExpression(sceneIndex, setsPath, relName) ==
+              relExpr);
+    TF_VERIFY(_GetMembershipExpression(sceneIndex, setsPath, refName) ==
+              refExpr);
+    TF_VERIFY(_GetMembershipExpression(
+                  sceneIndex, setsPath, emptyRelName).IsEmpty());
+    TF_VERIFY(_GetMembershipExpression(sceneIndex, setsPath, exprName) ==
+              SdfPathExpression("/World/B"));
+}
+
 int main()
 {
     TfErrorMark mark;
@@ -853,6 +940,10 @@ int main()
     AddNonEmptyLayerTest();
 
     CustomPrimvarChangeTest();
+
+    // Ensure that collections reach Hydra with the membership expression
+    // UsdCollectionAPI computes, in every mode.
+    CollectionMembershipExpressionTest();
 
     if (TF_VERIFY(mark.IsClean())) {
         std::cout << "OK" << std::endl;
